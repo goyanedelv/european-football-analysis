@@ -1,0 +1,22 @@
+# Tasks
+
+## 1. Arquitectura de datos [Gonza]
+## 2. Descripción general de los datos 
+    ## 2.1. Match
+    ## 2.2. Player Attributes
+    ## 2.3. Team Attributes
+## 3. Más cosas
+    ## 3.1. Network of players
+    ## 3.2. Clustering of teams
+    ## 3.3. Home advantage analysis
+    ## 3.4. Análisis de precios de los jugadores (incl. subvalorados)
+    ## 3.5. Análisis de formaciones, cuál es más efectiva?
+## 4. Predictions
+    ## 4.1. Match prediction W-D-L
+    ## 4.2. Match feaures prediction
+    ## 4.3. Championship prediction
+    ## 4.4. Player development
+    ## 4.5. Lesiones
+    ## 4.6. Odds predictability
+    ## 4.7. Optimal portfolio $$$
+#####################################################################
