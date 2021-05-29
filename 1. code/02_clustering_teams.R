@@ -85,11 +85,12 @@ teams_2015$country <- NULL
         matrix <- dist(teams_2015_dummies[,(1:length(teams_2015_dummies)-1)], upper = TRUE, diag = TRUE) #; matrix
 
         col <- colorRampPalette(brewer.pal(10, "RdYlBu"))(256)
-
+        
+        png("3. output/S7.png", width=2000, height=2000)
         heatmap(as.matrix(matrix), col = col, 
             labRow = teams_2015_dummies$team_long_name,
             labCol = teams_2015_dummies$team_long_name)
-
+        dev.off()
 
 # 3. PCA clustering
     # 3.1. Prep
