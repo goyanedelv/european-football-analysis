@@ -1,3 +1,6 @@
+## Gonzalo Oyanedel Vial
+## June 2021
+
 rm(list=ls())
 
 library(openxlsx)
@@ -28,4 +31,8 @@ example <- data.frame(age = example$age, or = example$overall_rating)
 attach(player_atts)
     plot(x = age, y = overall_rating)
 detach(player_atts)
+
+## Killer analysis
+    # if I see 3 years, can I predict the fourth year?
+        # contract intelligence
 

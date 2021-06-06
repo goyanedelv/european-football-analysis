@@ -1,3 +1,6 @@
+## Gonzalo Oyanedel Vial
+## June 2021
+
 rm(list=ls())
 
 library(openxlsx)
@@ -98,29 +101,94 @@ teams_2015$country <- NULL
         pc_teams <- prcomp(t(teams_2015_dummies[,(1:length(teams_2015_dummies)-1)]), scale = TRUE)
 
         df <- data.frame(PC1 = pc_teams$rotation[,'PC1'], PC2 = pc_teams$rotation[,'PC2'],
-                        label = teams_2015_dummies$team_long_name,
-                        country = teams_2015$country)
+                        team_long_name = teams_2015_dummies$team_long_name)
 
-        X <- as.matrix(df[,c(1,2)])
+        cty <- unique(teams[,c('team_long_name', 'country')])
+        #colnames(cty)[1] <- 'label'
+
+        df <- merge(df, cty, by = 'team_long_name')
+
+        X <- as.matrix(df[,c('PC1', 'PC2')])
         k_teams <- kmeans(X, center=5, nstart=10)
 
         means <- as.data.frame(k_teams$centers)
-        means$label <- NA
+        means$team_long_name <- NA
         means$country <- NA
     
     # 3.2. Plot
 
-        gg <- ggplot(df, aes(PC1, PC2, col = country, label = label)) + geom_point(aes(shape=country), size=2) +
+        gg <- ggplot(df, aes(PC1, PC2, col = country, label = team_long_name)) + geom_point(aes(shape=country), size=2) +
                 labs(title = "Teams Clustering", 
                 subtitle = "With principal components PC1 and PC2 as X and Y axis") +
                 geom_point(data = as.data.frame(means), shape = 4, size = 5, col = 'black')
         gg
 
         df$cluster <- k_teams$cluster
-    
-    table(df$cluster, df$country)
+
+        df$cluster <- as.factor(df$cluster)
+        df$country <- as.factor(df$country)
+        df$team_long_name <- as.factor(df$team_long_name)
+
     # To-Do, cruzar con los ganadores/perdedores
     
     # Do teams from the same country play similarly?
+        table(df$cluster, df$country)
         # Apparently they don't
 
+    # Do teams with a certain style win more often?
+        win_lose <- read.xlsx('0. data/Match_summary_by_team_year.xlsx')
+        win_lose_15 <- win_lose[win_lose$year == 2015,]
+
+        df <- merge(df, win_lose_15[, c('team_long_name', 'win_rate')])
+
+        df_win_rate <- df %>%
+            group_by(cluster) %>%
+            summarise(avg_win_rate = mean(win_rate),
+                        sd_win_rate = sd(win_rate))
+
+        df_win_rate
+        plot(df_win_rate$avg_win_rate)
+
+        boxplot(df$win_rate, df$country)
+
+        # Yes! Who are in cluster two?
+            df$team_long_name[df$cluster == 2]
+        
+    # what makes teams in cluster  #2 better?
+        df_rich <- merge(df, teams_2015, by = 'team_long_name')
+        
+        # analysis with lasso
+            library(gamlr)
+            X <- sparseMatrix(df_rich) # HTF do I create a sparse matrix from a data frame?
+
+        # analysis with glm
+            df_rich$is_2 <- 0
+            df_rich$is_2[df_rich$cluster == 2] <- 1
+
+            df_rich$is_2 <- as.factor(df_rich$is_2)
+
+            select <- colnames(df_rich)
+            select <- select[-which(select %in% c('team_long_name', 'PC1', 'PC2', 'cluster'))]
+
+            model <- glm(is_2 ~ ., data = df_rich[,select], family = 'binomial')
+            summary(model) # awful
+
+            model_2 <- glm(win_rate ~ ., data = df_rich[,select], family = 'gaussian')
+            summary(model_2) # very weak
+
+        # analysis with random forest
+            library(randomForest)
+            select_3 <- colnames(df_rich)
+            select_3 <- select_3[-which(select_3 %in% c('team_long_name', 'PC1', 'PC2'))]
+
+            data_rf <- df_rich[,select_3]
+            data_rf$is_2 <- NULL
+
+            model_3 <- randomForest(cluster ~ ., data = data_rf, importance=TRUE, ntree=2)
+            
+            predicted <- predict(model_3,data_rf)
+
+            df$pred_cluster <- predicted
+            sum(df$cluster == df$pred_cluster)/nrow(df)
+
+            model_3$importance

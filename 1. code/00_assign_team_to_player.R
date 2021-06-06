@@ -1,3 +1,6 @@
+## Gonzalo Oyanedel Vial
+## June 2021
+
 rm(list=ls())
 
 library(openxlsx)
