@@ -3,6 +3,8 @@ setwd("C:/Users/gvida/OneDrive - The University of Chicago/MBA/Clases/3Q/Big Dat
 library(openxlsx)
 library(gamlr)
 library(Hmisc)
+library(xtable)
+
 data <- read.xlsx('Match_for_prediction.xlsx')
 data1<- read.xlsx('Player_Attributes.xlsx')
 data2=read.xlsx('Player.xlsx')
@@ -58,15 +60,12 @@ head(pr_pos)
 posit=rbind(c("CAM,CDM,CM,LAM,LCM,LM,LW,RAM,RCM,RDM,RM,RW,DP,AP,GK"),c("CB,LB,LCB,LDM,LWB,RB,RCB,RWB"),c("CF,LF,LS,RES,RF,RS,ST"),c("GK"))
 rownames(posit)=c("Midfield Positions","Defensive Positions","Attacking Positions","Goal Keepers")
 colnames(posit)=c("FIFA Positions")
-posit
-
+xtable(posit)
 #Merger price and position dataset with player attributes dataset
 names(pr_pos)=c("player_fifa_api_id","value_eur","team_position")
 player=merge(player,pr_pos,by='player_fifa_api_id')
 a=subset(data2, select=-c(id,player_api_id,player_name))
-head(a)
 player=merge(player,a,by='player_fifa_api_id')
-head(player)
 player=subset(player,select= -c(id,player_api_id,overall_rating))
 
 #Get the age
@@ -90,7 +89,7 @@ player_DP=player[which(player$team_position==c("DP")),]
 player_AP=player[which(player$team_position==c("AP")),]
 player_GK=player[which(player$team_position==c("GK")),]
 
-#take out variable that shouldn't matter
+#take out variables that shouldn't matter
 DMP=subset(player_MP,select=-c(team_position, attacking_work_rate, defensive_work_rate, potential))
 DDP=subset(player_DP,select=-c(team_position, attacking_work_rate, defensive_work_rate, potential))
 DAP=subset(player_AP,select=-c(team_position, attacking_work_rate, defensive_work_rate, potential))
@@ -101,12 +100,28 @@ par(mfrow=c(1,1))
 boxplot(log(DMP$value_eur),log(DDP$value_eur),log(DAP$value_eur),log(DGK$value_eur),ylab="Value in Euros (log)",xlab=c("Positions"),names=c("MP","DP","AP","GK"))
 dev.print(device=pdf, file="val_pos.pdf")
 
+Av=colMeans(subset(rbind(DMP,DDP,DAP,DGK),select=-c(preferred_foot,player_fifa_api_id)))
+MPAv=colMeans(subset(DMP,select=-c(preferred_foot,player_fifa_api_id)))
+DPAv=colMeans(subset(DDP,select=-c(preferred_foot,player_fifa_api_id)))
+APAv=colMeans(subset(DAP,select=-c(preferred_foot,player_fifa_api_id)))
+GKAv=colMeans(subset(DGK,select=-c(preferred_foot,player_fifa_api_id)))
+par(mar =c(9,3,3,3))
+plot(GKAv/Av,col='red',xaxt="n",xlab='',pch=19,cex=2)
+axis(1,cex.axis=1,las = 2, at=1:ncol(subset(DMP,select=-c(preferred_foot,player_fifa_api_id))), labels=colnames(subset(DMP,select=-c(preferred_foot,player_fifa_api_id))))
+points(DPAv/Av,col='blue',xaxt="n",xlab='',pch=19,cex=2)
+points(APAv/Av,col='orange',xaxt="n",xlab='',pch=19, cex=2)
+points(MPAv/Av,col='green',xaxt="n",xlab='',pch=19, cex=2)
+legend("topleft", bty="n", pch=19, cex=1.5,
+       col=c("red","blue","orange","green"),
+       legend=c("Goal Keepers","Defensive Positions","Attacking Positions","Midfield Positions"))
+dev.print(device=pdf, file="skill_pos.pdf")
+dev.off()
+
 #Linear Model
 Linear_MP=lm(value_eur~.-player_fifa_api_id,data=DMP)
 Linear_DP=lm(value_eur~.-player_fifa_api_id,data=DDP)
 Linear_AP=lm(value_eur~.-player_fifa_api_id,data=DAP)
 Linear_GK=lm(value_eur~.-player_fifa_api_id,data=DGK)
-head(DMP
 summary(Linear_MP)
 summary(Linear_AP)
 summary(Linear_DP)
@@ -135,7 +150,7 @@ rs=cbind(rsMP,rsDP,rsAP,rsGK)
 colnames(rs)=c("MP","DP","AP","GK")
 rownames(rs)=c("R2")
 rs
-latexVerbatim(rs)
+xtable(rs)
 
 #Log model
 DMPl=DMP[-which(DMP$value_eur==0),]
@@ -156,22 +171,26 @@ summary(Log_MP)
 summary(Log_AP)
 summary(Log_DP)
 summary(Log_GK)
+
 a=as.matrix(coef(Log_MP)[which(summary(Log_MP)$coefficients[,4]<=0.001)])
 colnames(a)=c("MP-Coefficients")
 logMP=a
-latexVerbatim(logMP)
+xtable(logMP,type = "latex", file = "filename2.tex")
+
 b=as.matrix(coef(Log_DP)[which(summary(Log_DP)$coefficients[,4]<=0.001)])
 colnames(b)=c("DP-Coefficients")
 logDP=b
-latexVerbatim(logDP)
+xtable(logDP,type = "latex", file = "filename2.tex")
+
 c=as.matrix(coef(Log_AP)[which(summary(Log_AP)$coefficients[,4]<=0.001)])
 colnames(c)=c("AP-Coefficients")
 logAP=c
-latexVerbatim(logAP)
+xtable(logAP,type = "latex", file = "filename2.tex")
+
 d=as.matrix(coef(Log_GK)[which(summary(Log_GK)$coefficients[,4]<=0.001)])
 colnames(d)=c("GK-Coefficients")
 logGK=d
-latexVerbatim(logGK)
+xtable(logGK,type = "latex", file = "filename2.tex")
 
 #Plot
 PMP=predict(Log_MP,newdata=DMPl)
@@ -195,25 +214,39 @@ rsGK=R2(y=DGKl$lval, pred=PGK)
 rslog=cbind(rsMP,rsDP,rsAP,rsGK)
 colnames(rslog)=c("MP","DP","AP","GK")
 rownames(rslog)=c("R2")
-latexVerbatim(rslog)
+xtable(rslog)
+
+
 
 #Lasso Model
 #Prepare Dataset
 lvalMP=DMPl$lval
-DMP1=subset(DMPl,select=-c(value_eur,lval,player_fifa_api_id))
+DMP1=DMPl
+DMP1$right_foot=ifelse(DMP1$preferred_foot == 'right', 1, 0)
+DMP1=subset(DMPl,select=-c(value_eur,lval,player_fifa_api_id,preferred_foot))
+DMP1=as.data.frame(scale(DMP1))
 DMP1 <-sparse.model.matrix(~., data =DMP1 )[,-1]
 lvalDP=DDPl$lval
-DDP1=subset(DDPl,select=-c(value_eur,lval,player_fifa_api_id))
+DDP1=DDPl
+DDP1$right_foot=ifelse(DDP1$preferred_foot == 'right', 1, 0)
+DDP1=subset(DDPl,select=-c(value_eur,lval,player_fifa_api_id,preferred_foot))
+DDP1=as.data.frame(scale(DDP1))
 DDP1 <-sparse.model.matrix(~., data =DDP1 )[,-1]
 lvalAP=DAPl$lval
-DAP1=subset(DAPl,select=-c(value_eur,lval,player_fifa_api_id))
+DAP1=DAPl
+DAP1$right_foot=ifelse(DAP1$preferred_foot == 'right', 1, 0)
+DAP1=subset(DAPl,select=-c(value_eur,lval,player_fifa_api_id,preferred_foot))
+DAP1=as.data.frame(scale(DAP1))
 DAP1 <-sparse.model.matrix(~., data =DAP1 )[,-1]
 lvalGK=DGKl$lval
-DGK1=subset(DGKl,select=-c(value_eur,lval,player_fifa_api_id))
+DGK1=DGKl
+DGK1$right_foot=ifelse(DGK1$preferred_foot == 'right', 1, 0)
+DGK1=subset(DGKl,select=-c(value_eur,lval,player_fifa_api_id,preferred_foot))
+DGK1=as.data.frame(scale(DGK1))
 DGK1 <-sparse.model.matrix(~., data =DGK1 )[,-1]
 
 #Lasso
-par(mfrow=c(4,2))
+par(mfrow=c(1,2))
 lasso_MP<- gamlr(DMP1, y=lvalMP, lambda.min.ratio=1e-3)
 ll=lasso_MP$lambda
 AICc=log(ll[which.min(AICc(lasso_MP))]) #lambda AICc
@@ -312,27 +345,33 @@ rsGK=R2(y=DGKl$lval, pred=PGK)
 rslasso=cbind(rsMP,rsDP,rsAP,rsGK)
 colnames(rslasso)=c("MP","DP","AP","GK")
 rownames(rslasso)=c("R2")
-latexVerbatim(rslasso)
+xtable(rslasso)
 
+#R2
 
-#Coefficients
+#Coefficients (Standardized)
 CoefMP=coef(cv.lassoMP, select="min")
-CoefMP=CoefMP[order(CoefMP,decreasing=T)]
-CoefMP=as.matrix(CoefMP[1:10])
-lasso_MP$beta[7,]
+index=order(CoefMP,decreasing=T)
+CoefMP=as.matrix(CoefMP[index,])
+CoefMP=as.matrix(CoefMP[2:10,])
+xtable(CoefMP,type = "latex", file = "filename2.tex")
 
 CoefDP=coef(cv.lassoDP, select="min")
-CoefDP=CoefDP[order(CoefDP,decreasing=T)]
-CoefDP=as.matrix(CoefDP[1:10])
+CoefDP=CoefDP[order(CoefDP,decreasing=T),]
+CoefDP=as.matrix(CoefDP[2:10])
+xtable(CoefDP,type = "latex", file = "filename2.tex")
+
 
 CoefAP=coef(cv.lassoAP, select="min")
-CoefAP=CoefMP[order(CoefAP,decreasing=T),]
-CoefAP=as.matrix(CoefAP[1:10])
+index=order(CoefAP,decreasing=T)
+CoefAP=as.matrix(CoefAP[index,])
+CoefAP=as.matrix(CoefAP[2:10,])
+xtable(CoefAP,type = "latex", file = "filename2.tex")
 
 CoefGK=coef(cv.lassoGK, select="min")
 CoefGK=CoefGK[order(CoefGK,decreasing=T),]
-CoefGK=as.matrix(CoefGK[1:10])
-
+CoefGK=as.matrix(CoefGK[2:10])
+xtable(CoefGK,type = "latex", file = "filename2.tex")
 
 #Most undervalued players
 #Midfield Positions
@@ -348,7 +387,7 @@ Underval=merge(Pred,names,by='player_fifa_api_id')
 Underval=Underval[order(Underval$dif_eur,decreasing=T),]
 Underval=Underval[1:10,]
 Underval=subset(Underval,select=c(short_name,value_eur,Predvalue_eur,dif_eur))
-Underval$Percdif=(Underval$dif_eur)/(Underval$value_eur)
+Underval$Percdif=100*(Underval$dif_eur)/(Underval$value_eur)
 colnames(Underval)=c("Name","Value", "Prediction", "Diff.","% Diff.")
 rownames(Underval)=Underval$Name
 Underval=subset(Underval,select=-c(Name))
@@ -368,7 +407,7 @@ Underval=merge(Pred,names,by='player_fifa_api_id')
 Underval=Underval[order(Underval$dif_eur,decreasing=T),]
 Underval=Underval[1:10,]
 Underval=subset(Underval,select=c(short_name,value_eur,Predvalue_eur,dif_eur))
-Underval$Percdif=(Underval$dif_eur)/(Underval$value_eur)
+Underval$Percdif=100*(Underval$dif_eur)/(Underval$value_eur)
 colnames(Underval)=c("Name","Value", "Prediction", "Diff.","% Diff.")
 rownames(Underval)=Underval$Name
 Underval=subset(Underval,select=-c(Name))
@@ -387,7 +426,7 @@ Underval=merge(Pred,names,by='player_fifa_api_id')
 Underval=Underval[order(Underval$dif_eur,decreasing=T),]
 Underval=Underval[1:10,]
 Underval=subset(Underval,select=c(short_name,value_eur,Predvalue_eur,dif_eur))
-Underval$Percdif=(Underval$dif_eur)/(Underval$value_eur)
+Underval$Percdif=100*(Underval$dif_eur)/(Underval$value_eur)
 colnames(Underval)=c("Name","Value", "Prediction", "Diff.","% Diff.")
 rownames(Underval)=Underval$Name
 Underval=subset(Underval,select=-c(Name))
@@ -406,19 +445,14 @@ Underval=merge(Pred,names,by='player_fifa_api_id')
 Underval=Underval[order(Underval$dif_eur,decreasing=T),]
 Underval=Underval[1:11,]
 Underval=subset(Underval,select=c(short_name,value_eur,Predvalue_eur,dif_eur))
-Underval$Percdif=(Underval$dif_eur)/(Underval$value_eur)
+Underval$Percdif=100*(Underval$dif_eur)/(Underval$value_eur)
 colnames(Underval)=c("Name","Value", "Prediction", "Diff.","% Diff.")
 Underval=Underval[-10,]
 rownames(Underval)=Underval$Name
 Underval=subset(Underval,select=-c(Name))
 UndervalGK=Underval
 
-
-
-#Results
-latexVerbatim(posit)
-latexVerbatim(UndervalMP)
-latexVerbatim(UndervalDP)
-latexVerbatim(UndervalAP)
-latexVerbatim(UndervalGK)
-
+xtable(UndervalMP)
+xtable(UndervalDP)
+xtable(UndervalAP)
+xtable(UndervalGK)

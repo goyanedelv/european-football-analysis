@@ -10,8 +10,8 @@ library(igraph)
 library(foreach)
 library(doParallel)
 
-cw <- read.xlsx('0. data/cross_walk_player_team_2.xlsx')
-player <- read.xlsx('0. data/Player.xlsx')
+cw <- read.xlsx('cross_walk_player_team_2.xlsx')
+player <- read.xlsx('Player.xlsx')
 
 # simplify cw
 cw$year <- NULL
@@ -93,4 +93,3 @@ shortest_paths(player_network, from="Radamel Falcao", to="Alexis Sanchez")$vpath
 
 # pick one
 PtoA <- get.shortest.paths(player_network, from="Radamel Falcao", to="Alexis Sanchez")
-
