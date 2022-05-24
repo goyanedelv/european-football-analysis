@@ -1,5 +1,4 @@
 rm(list=ls())
-setwd("C:/Users/gvida/OneDrive - The University of Chicago/MBA/Clases/3Q/Big Data/Final")
 install.packages('tidyr')
 install.packages('ellipsis')
 install.packages('vctrs')
